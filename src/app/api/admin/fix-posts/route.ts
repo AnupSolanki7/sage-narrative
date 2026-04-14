@@ -11,6 +11,7 @@ import { getSession } from '@/lib/auth/session'
 import { connectDB } from '@/lib/db/mongodb'
 import Post from '@/models/Post'
 import { parseMarkdownFile } from '@/lib/markdown/parser'
+export const dynamic = 'force-dynamic'
 
 function hasFrontmatter(text: string): boolean {
   return typeof text === 'string' && text.trimStart().startsWith('---')
