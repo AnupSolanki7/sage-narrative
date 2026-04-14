@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rm -f src/lib/sanity.ts src/lib/queries.ts sanity.config.ts sanity.cli.ts src/components/PortableTextRenderer.tsx)",
+      "Bash(rm -rf src/sanity src/app/studio)",
+      "Bash(grep -E \"\\\\.tsx$|^d\")",
+      "Bash(node node_modules/typescript/bin/tsc --noEmit)",
+      "Bash(node ./node_modules/typescript/bin/tsc --noEmit)"
+    ]
+  }
+}
