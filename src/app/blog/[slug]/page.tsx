@@ -114,7 +114,7 @@ export default async function ArticlePage({ params }: PageProps) {
   return (
     <>
       <ReadingProgress />
-      <article className="max-w-7xl mx-auto px-4 md:px-8 py-10 md:py-16">
+      <article className="max-w-7xl mx-auto px-4 md:px-8 py-8 md:py-12">
         {/* Article header */}
         <div className="max-w-7xl mx-auto">
           <ArticleHeader
@@ -133,7 +133,7 @@ export default async function ArticlePage({ params }: PageProps) {
 
         {/* Featured image */}
         {coverImage && (
-          <div className="max-w-7xl mx-auto mb-10 md:mb-14">
+          <div className="max-w-7xl mx-auto mb-8 md:mb-10">
             <div className="relative aspect-[21/9] rounded-[2rem] overflow-hidden bg-[#ebf0dd] dark:bg-[#2d3226]">
               <Image
                 src={coverImage}
@@ -148,10 +148,10 @@ export default async function ArticlePage({ params }: PageProps) {
         )}
 
         {/* Content layout: article + sidebar */}
-        <div className="flex gap-10 lg:gap-16 items-start">
+        <div className="flex gap-8 lg:gap-12 items-start">
           {/* Main article content */}
           <div className="flex-1 min-w-0">
-            <div className="bg-white dark:bg-[#1c2217] rounded-[2rem] border border-[#e0e5d2] dark:border-[#2d3226] px-6 md:px-10 lg:px-14 py-10 md:py-14 shadow-card">
+            <div className="bg-white dark:bg-[#1c2217] rounded-[2rem] border border-[#e0e5d2] dark:border-[#2d3226] px-6 md:px-10 lg:px-12 py-8 md:py-10 shadow-card">
               <MarkdownRenderer contentHtml={contentHtml} />
             </div>
 
@@ -178,7 +178,7 @@ export default async function ArticlePage({ params }: PageProps) {
         </div>
 
         {/* Author card */}
-        <div className="max-w-7xl mx-auto mt-12">
+        <div className="max-w-7xl mx-auto mt-8">
           <AuthorCard
             authorName={authorName}
             authorAvatar={authorAvatar}
