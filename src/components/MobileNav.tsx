@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { X, BookOpen, Cpu, Lightbulb, Home, User, BookMarked, LayoutDashboard, LogIn, LogOut, Settings } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import SageLogo from './SageLogo'
 
 const navLinks = [
   { href: '/', label: 'Home', icon: Home },
@@ -65,10 +66,11 @@ export default function MobileNav({ isOpen, onClose, user, onLogout }: MobileNav
         <div className="flex items-center justify-between px-6 py-5 border-b border-[#e0e5d2] dark:border-[#2d3226]">
           <Link
             href="/"
-            className="font-serif italic font-semibold text-xl text-[#181d12] dark:text-[#f7fce9]"
+            className="shrink-0 flex items-center"
             onClick={onClose}
+            aria-label="Sage Narrative — home"
           >
-            Sage Narrative
+            <SageLogo variant="compact" height={34} />
           </Link>
           <button
             onClick={onClose}

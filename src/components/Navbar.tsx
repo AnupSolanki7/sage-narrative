@@ -7,6 +7,7 @@ import { Menu, User, ChevronDown, LayoutDashboard, Settings, LogOut } from 'luci
 import { cn } from '@/lib/utils'
 import ThemeToggle from './ThemeToggle'
 import MobileNav from './MobileNav'
+import SageLogo from './SageLogo'
 
 interface NavUser {
   name: string
@@ -24,11 +25,11 @@ const navLinks = [
 ]
 
 export default function Navbar() {
-  const pathname   = usePathname()
-  const router     = useRouter()
-  const [scrolled,     setScrolled]     = useState(false)
-  const [mobileOpen,   setMobileOpen]   = useState(false)
-  const [user,         setUser]         = useState<NavUser | null>(null)
+  const pathname = usePathname()
+  const router = useRouter()
+  const [scrolled, setScrolled] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
+  const [user, setUser] = useState<NavUser | null>(null)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -88,11 +89,8 @@ export default function Navbar() {
         >
           <div className="flex items-center justify-between gap-4">
             {/* Logo / Brand */}
-            <Link
-              href="/"
-              className="font-serif italic font-semibold text-lg md:text-xl text-[#181d12] dark:text-[#f7fce9] hover:text-[#5b6300] dark:hover:text-[#c2cf47] transition-colors shrink-0"
-            >
-              Sage Narrative
+            <Link href="/" className="shrink-0 flex items-center" aria-label="Sage Narrative — home">
+              <SageLogo variant="full" height={38} />
             </Link>
 
             {/* Desktop nav links */}

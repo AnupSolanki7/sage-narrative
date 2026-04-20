@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 80" fill="none">
+  <!-- Green circle background -->
+  <circle cx="40" cy="40" r="36" fill="#8fa86e"/>
+
+  <!-- Stylized S / plant sprout inside circle -->
+  <!-- Stem -->
+  <line x1="40" y1="55" x2="40" y2="28" stroke="#2a3318" stroke-width="2.2" stroke-linecap="round"/>
+  <!-- Left leaf -->
+  <path d="M40 38 C34 34 28 36 28 42 C34 42 38 40 40 38Z" fill="#2a3318"/>
+  <!-- Right leaf -->
+  <path d="M40 32 C46 28 52 30 52 36 C46 36 42 34 40 32Z" fill="#2a3318"/>
+  <!-- Serif S letterform overlay (subtle) -->
+  <text x="40" y="52" text-anchor="middle" font-family="Georgia, serif" font-size="28" font-weight="600" fill="#2a3318" opacity="0.85">S</text>
+
+  <!-- Brand name -->
+  <text x="90" y="36" font-family="Georgia, 'Times New Roman', serif" font-size="22" font-weight="700" fill="#2a3318" letter-spacing="5">SAGE NARRATIVE</text>
+
+  <!-- Tagline -->
+  <text x="90" y="54" font-family="Georgia, 'Times New Roman', serif" font-size="9.5" fill="#767870" letter-spacing="3.5">THOUGHTFUL WRITING . CALM FOCUS</text>
+</svg>

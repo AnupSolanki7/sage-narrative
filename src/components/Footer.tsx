@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { Twitter, Mail, Rss, Github } from 'lucide-react'
+import SageLogo from './SageLogo'
 
 const navLinks = [
   { href: '/', label: 'Home' },
@@ -28,11 +29,8 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10 mb-12">
           {/* Brand col */}
           <div className="md:col-span-1">
-            <Link
-              href="/"
-              className="font-serif italic font-semibold text-2xl text-[#181d12] dark:text-[#f7fce9] hover:text-[#5b6300] dark:hover:text-[#c2cf47] transition-colors"
-            >
-              Sage Narrative
+            <Link href="/" className="inline-flex items-center" aria-label="Sage Narrative — home">
+              <SageLogo variant="full" height={52} />
             </Link>
             <p className="mt-3 text-sm text-[#464841] dark:text-[#c6c7be] leading-relaxed max-w-[260px]">
               A publication at the intersection of technology, culture, and the

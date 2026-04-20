@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80">
+  <!-- Sage-green circle -->
+  <circle cx="40" cy="40" r="40" fill="#8fa86e"/>
+  <!-- Stem -->
+  <line x1="40" y1="60" x2="40" y2="22" stroke="#2a3318" stroke-width="3" stroke-linecap="round"/>
+  <!-- Left leaf -->
+  <path d="M40 44 C30 38 20 41 20 50 C31 50 37 47 40 44Z" fill="#2a3318"/>
+  <!-- Right leaf -->
+  <path d="M40 34 C50 27 60 30 60 39 C49 39 43 36 40 34Z" fill="#2a3318"/>
+  <!-- Dot at top -->
+  <circle cx="40" cy="20" r="3.5" fill="#2a3318"/>
+</svg>
