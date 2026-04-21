@@ -21,6 +21,8 @@ export interface IPost extends Document {
   status: 'draft' | 'published'
   readingTime?: number
   postType: 'story' | 'tech' | 'insight'
+  /** Set to true after new-post notification emails have been sent. */
+  notificationSent: boolean
   createdAt: Date
   updatedAt: Date
 }
@@ -47,6 +49,7 @@ const PostSchema = new Schema<IPost>(
     status:      { type: String, enum: ['draft', 'published'], default: 'draft' },
     readingTime: { type: Number },
     postType:    { type: String, required: true, enum: ['story', 'tech', 'insight'] },
+    notificationSent: { type: Boolean, default: false },
   },
   { timestamps: true }
 )

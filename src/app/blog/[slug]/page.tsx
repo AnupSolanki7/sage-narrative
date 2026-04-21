@@ -193,7 +193,7 @@ export default async function ArticlePage({ params }: PageProps) {
 
         {/* Newsletter */}
         <div className="mt-16">
-          <NewsletterSection />
+          <NewsletterSection source="article-bottom" />
         </div>
       </article>
     </>

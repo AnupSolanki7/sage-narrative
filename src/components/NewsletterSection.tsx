@@ -1,32 +1,35 @@
 'use client'
 
 import { useState } from 'react'
-import { Mail, ArrowRight, Check } from 'lucide-react'
+import { Mail, ArrowRight, Check, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useSubscribe } from '@/hooks/useSubscribe'
+import type { SubscriberSource } from '@/models/Subscriber'
 
 interface NewsletterSectionProps {
   title?: string
   description?: string
   className?: string
+  source?: SubscriberSource
 }
 
 export default function NewsletterSection({
   title = 'Deep Insights Weekly',
   description = 'Join over 12,000 thoughtful readers who receive our curated dispatches on technology, human narrative, and the examined life. No noise. No filler. Only essays worth your time.',
   className,
+  source = 'homepage',
 }: NewsletterSectionProps) {
   const [email, setEmail] = useState('')
-  const [submitted, setSubmitted] = useState(false)
-  const [loading, setLoading] = useState(false)
+  const { state, subscribe } = useSubscribe()
+
+  const isLoading = state.status === 'loading'
+  const isSuccess = state.status === 'success'
+  const isError = state.status === 'error'
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!email) return
-    setLoading(true)
-    // Simulate submission
-    await new Promise((r) => setTimeout(r, 900))
-    setLoading(false)
-    setSubmitted(true)
+    await subscribe(email, source)
+    if (state.status !== 'error') setEmail('')
   }
 
   return (
@@ -63,7 +66,7 @@ export default function NewsletterSection({
             </p>
 
             {/* Form */}
-            {!submitted ? (
+            {!isSuccess ? (
               <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 justify-center max-w-md mx-auto">
                 <input
                   type="email"
@@ -71,14 +74,15 @@ export default function NewsletterSection({
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="your@email.com"
                   required
-                  className="flex-1 min-w-0 px-5 py-3 rounded-full bg-white/15 border border-white/25 text-white placeholder:text-white/50 focus:outline-none focus:bg-white/20 focus:border-white/40 transition-all text-sm"
+                  disabled={isLoading}
+                  className="flex-1 min-w-0 px-5 py-3 rounded-full bg-white/15 border border-white/25 text-white placeholder:text-white/50 focus:outline-none focus:bg-white/20 focus:border-white/40 transition-all text-sm disabled:opacity-60"
                 />
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={isLoading}
                   className="inline-flex items-center justify-center gap-2 shrink-0 px-6 py-3 rounded-full bg-[#d3e056] text-[#5a6200] font-semibold text-sm hover:bg-[#c2cf47] transition-all active:scale-95 disabled:opacity-70"
                 >
-                  {loading ? (
+                  {isLoading ? (
                     <span className="flex items-center gap-2">
                       <span className="w-4 h-4 border-2 border-[#5a6200]/30 border-t-[#5a6200] rounded-full animate-spin" />
                       Joining...
@@ -97,13 +101,21 @@ export default function NewsletterSection({
                   <Check className="w-3 h-3 text-[#5a6200]" />
                 </div>
                 <span className="text-white font-medium text-sm">
-                  You&apos;re subscribed! Welcome to the community.
+                  {state.message || "You're subscribed! Welcome to the community."}
                 </span>
               </div>
             )}
 
+            {/* Inline error message */}
+            {isError && (
+              <p className="mt-3 flex items-center justify-center gap-1.5 text-[#fde68a] text-xs">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                {state.message}
+              </p>
+            )}
+
             {/* Fine print */}
-            {!submitted && (
+            {!isSuccess && (
               <p className="mt-4 text-white/40 text-xs">
                 No spam. Unsubscribe at any time. One email per week.
               </p>

@@ -49,6 +49,8 @@ export interface DbPost {
   status: PostStatus
   readingTime?: number
   postType: PostType
+  /** True after new-post notification emails have been dispatched. */
+  notificationSent: boolean
   createdAt: string
   updatedAt: string
 }

@@ -49,6 +49,7 @@ function toDbPost(doc: IPost): DbPost {
     status:         obj.status,
     readingTime:    obj.readingTime,
     postType:       obj.postType,
+    notificationSent: obj.notificationSent ?? false,
     createdAt:      obj.createdAt.toISOString(),
     updatedAt:      obj.updatedAt.toISOString(),
   }
