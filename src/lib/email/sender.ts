@@ -1,4 +1,4 @@
-import { resend, EMAIL_FROM, SITE_URL, isEmailEnabled } from './resend'
+import { transporter, EMAIL_FROM, isEmailEnabled } from './transporter'
 import { buildWelcomeEmail } from './templates/welcome'
 import { buildNewPostEmail } from './templates/new-post'
 
@@ -27,17 +27,12 @@ async function send({
   }
 
   try {
-    const { error } = await resend.emails.send({
+    await transporter.sendMail({
       from: EMAIL_FROM,
       to,
       subject,
       html,
     })
-
-    if (error) {
-      console.error('[email] Resend error:', error)
-      return { ok: false, error: error.message }
-    }
 
     return { ok: true }
   } catch (err) {
@@ -86,10 +81,10 @@ interface NotifyPostOptions {
 }
 
 /**
- * Sends a new-post notification to all active subscribers.
+ * Sends a new-post notification to all active subscribers individually.
  *
- * Uses Resend's batch-send capability (max 100 per call) so large
- * lists are automatically chunked. Failures are logged but never thrown.
+ * Recipients are chunked to avoid overwhelming the SMTP connection.
+ * Failures are logged but never thrown.
  *
  * Returns how many emails were sent successfully.
  */
@@ -97,7 +92,7 @@ export async function sendNewPostNotification(
   opts: NotifyPostOptions
 ): Promise<{ sent: number; failed: number }> {
   const { recipients, ...templateOpts } = opts
-  console.log(recipients);
+  console.log(recipients)
 
   if (recipients.length === 0) {
     console.info('[email] no active subscribers — skipping notification')
@@ -106,8 +101,7 @@ export async function sendNewPostNotification(
 
   const { subject, html } = buildNewPostEmail(templateOpts)
 
-  // Resend supports up to 100 recipients per call in batch mode.
-  // We send individually so each email shows the correct To: header.
+  // Send individually so each email shows the correct To: header.
   // For large lists this should be moved to a queue / background job.
   const CHUNK_SIZE = 50
 
@@ -117,7 +111,6 @@ export async function sendNewPostNotification(
   for (let i = 0; i < recipients.length; i += CHUNK_SIZE) {
     const chunk = recipients.slice(i, i + CHUNK_SIZE)
 
-    // Send to each recipient individually to avoid To: header leakage
     const results = await Promise.allSettled(
       chunk.map((email) => send({ to: email, subject, html }))
     )

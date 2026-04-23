@@ -38,7 +38,6 @@ export async function POST(req: NextRequest) {
     }
 
     const post = await createPost(body as Omit<DbPost, '_id' | 'createdAt' | 'updatedAt'>)
-    console.log(post);
 
     // ── Send new-post notification if created directly as published ────────────
     if (post.status === 'published') {
@@ -53,7 +52,6 @@ export async function POST(req: NextRequest) {
       await connectDB()
       const subscribers = await Subscriber.find({ status: 'active' }).select('email').lean()
       const recipients = (subscribers as { email: string }[]).map((s) => s.email)
-      console.log(subscribers);
 
       sendNewPostNotification({
         postId: post._id,

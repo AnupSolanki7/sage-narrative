@@ -1,4 +1,4 @@
-import { SITE_URL } from '../resend'
+import { SITE_URL } from '../transporter'
 
 interface NewPostEmailOptions {
   title: string
