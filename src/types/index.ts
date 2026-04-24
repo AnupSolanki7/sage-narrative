@@ -51,6 +51,8 @@ export interface DbPost {
   postType: PostType
   /** True after new-post notification emails have been dispatched. */
   notificationSent: boolean
+  /** ISO timestamp of the notification dispatch. */
+  notificationSentAt?: string
   createdAt: string
   updatedAt: string
 }

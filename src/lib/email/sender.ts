@@ -92,7 +92,6 @@ export async function sendNewPostNotification(
   opts: NotifyPostOptions
 ): Promise<{ sent: number; failed: number }> {
   const { recipients, ...templateOpts } = opts
-  console.log(recipients)
 
   if (recipients.length === 0) {
     console.info('[email] no active subscribers — skipping notification')

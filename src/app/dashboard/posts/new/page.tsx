@@ -2,20 +2,30 @@
 
 import { useState, useRef, DragEvent } from 'react'
 import { useRouter } from 'next/navigation'
-import { Upload, FileText, Loader2, CheckCircle, AlertCircle, X, ImageIcon } from 'lucide-react'
+import { Upload, FileText, Loader2, CheckCircle, AlertCircle, X, ImageIcon, ClipboardPaste } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { parseMarkdownPost } from '@/lib/markdown/parseMarkdownPost'
+import { parseMarkdownContent, type ParsedPostDraft } from '@/lib/markdown/parseMarkdownPost'
+import MarkdownImageUploadButton from '@/components/dashboard/MarkdownImageUploadButton'
+
+type InputMode = 'upload' | 'paste'
 
 export default function DashboardNewPostPage() {
   const router = useRouter()
   const fileInputRef  = useRef<HTMLInputElement>(null)
   const imageInputRef = useRef<HTMLInputElement>(null)
+  const pasteTextareaRef = useRef<HTMLTextAreaElement>(null)
+
+  // ── markdown input mode ───────────────────────────────────────────────────
+  const [inputMode, setInputMode] = useState<InputMode>('upload')
 
   // ── upload state ──────────────────────────────────────────────────────────
   const [mdFile,      setMdFile]      = useState<File | null>(null)
   const [parseState,  setParseState]  = useState<'idle' | 'parsing' | 'ok' | 'error'>('idle')
   const [parseErrors, setParseErrors] = useState<string[]>([])
   const [isDragging,  setIsDragging]  = useState(false)
+
+  // ── paste state ───────────────────────────────────────────────────────────
+  const [pastedMarkdown, setPastedMarkdown] = useState('')
 
   // ── raw content ───────────────────────────────────────────────────────────
   const [contentRaw, setContentRaw] = useState('')
@@ -41,7 +51,29 @@ export default function DashboardNewPostPage() {
 
   // ── parse helpers ─────────────────────────────────────────────────────────
 
-  function applyParsedDraft(file: File) {
+  function applyDraft(draft: ParsedPostDraft) {
+    setContentRaw(draft.contentRaw)
+    setTitle(draft.title)
+    setSubtitle(draft.subtitle)
+    setExcerpt(draft.excerpt)
+    setSlug(draft.slug)
+    setCategory(draft.category)
+    setTags(draft.tags.join(', '))
+    setFeatured(draft.featured)
+    if (draft.coverImage) setCoverImageUrl(draft.coverImage)
+    setSeoTitle(draft.seoTitle)
+    setSeoDescription(draft.seoDescription)
+
+    if (draft.validationErrors.length > 0) {
+      setParseState('error')
+      setParseErrors(draft.validationErrors)
+    } else {
+      setParseState('ok')
+      setParseErrors([])
+    }
+  }
+
+  function applyParsedFile(file: File) {
     setMdFile(file)
     setParseState('parsing')
     setParseErrors([])
@@ -54,27 +86,7 @@ export default function DashboardNewPostPage() {
         setParseErrors(['Could not read file contents.'])
         return
       }
-
-      const draft = parseMarkdownPost(text)
-
-      setContentRaw(draft.contentRaw)
-      setTitle(draft.title)
-      setSubtitle(draft.subtitle)
-      setExcerpt(draft.excerpt)
-      setSlug(draft.slug)
-      setCategory(draft.category)
-      setTags(draft.tags.join(', '))
-      setFeatured(draft.featured)
-      if (draft.coverImage) setCoverImageUrl(draft.coverImage)
-      setSeoTitle(draft.seoTitle)
-      setSeoDescription(draft.seoDescription)
-
-      if (draft.validationErrors.length > 0) {
-        setParseState('error')
-        setParseErrors(draft.validationErrors)
-      } else {
-        setParseState('ok')
-      }
+      applyDraft(parseMarkdownContent(text))
     }
     reader.onerror = () => {
       setParseState('error')
@@ -94,7 +106,32 @@ export default function DashboardNewPostPage() {
       if (!confirm('Replace current content with the new file?')) return
     }
 
-    applyParsedDraft(file)
+    applyParsedFile(file)
+  }
+
+  function handleParsePasted() {
+    const text = pastedMarkdown
+    if (!text.trim()) {
+      setParseState('error')
+      setParseErrors(['Paste some Markdown content first.'])
+      return
+    }
+
+    if (title.trim() || contentRaw.trim()) {
+      if (!confirm('Replace current content with the pasted Markdown?')) return
+    }
+
+    setParseState('parsing')
+    setParseErrors([])
+    // Synchronous parser; microtask keeps the spinner visible for one tick.
+    Promise.resolve().then(() => applyDraft(parseMarkdownContent(text)))
+  }
+
+  function switchMode(next: InputMode) {
+    if (next === inputMode) return
+    setInputMode(next)
+    setParseState('idle')
+    setParseErrors([])
   }
 
   // ── drag-and-drop ─────────────────────────────────────────────────────────
@@ -167,7 +204,7 @@ export default function DashboardNewPostPage() {
     }
   }
 
-  const canSave = title.trim() && slug.trim()
+  const canSave = title.trim() && slug.trim() && contentRaw.trim()
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -176,80 +213,185 @@ export default function DashboardNewPostPage() {
           New Post
         </h1>
         <p className="text-sm text-[#767870] dark:text-[#464841] mt-1">
-          Upload a markdown file to auto-fill the form, or fill it in manually.
+          Upload a markdown file or paste Markdown text to auto-fill the form.
         </p>
       </div>
 
-      {/* Markdown upload */}
+      {/* Markdown input */}
       <div className="bg-white dark:bg-[#1c2217] rounded-[1.5rem] border border-[#e0e5d2] dark:border-[#2d3226] p-6 mb-6">
-        <h2 className="font-semibold text-[#181d12] dark:text-[#f7fce9] mb-4 flex items-center gap-2">
-          <FileText className="w-4 h-4 text-[#5b6300] dark:text-[#c2cf47]" />
-          Markdown File
-        </h2>
+        <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
+          <h2 className="font-semibold text-[#181d12] dark:text-[#f7fce9] flex items-center gap-2">
+            <FileText className="w-4 h-4 text-[#5b6300] dark:text-[#c2cf47]" />
+            Markdown Content
+          </h2>
 
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".md,.markdown"
-          className="hidden"
-          onChange={(e) => e.target.files?.[0] && handleFileInput(e.target.files[0])}
-        />
-
-        {parseState === 'idle' || !mdFile ? (
-          <div
-            onDragOver={onDragOver}
-            onDragLeave={onDragLeave}
-            onDrop={onDrop}
-            onClick={() => fileInputRef.current?.click()}
-            className={cn(
-              'w-full border-2 border-dashed rounded-[1rem] py-12 flex flex-col items-center gap-3 cursor-pointer transition-colors select-none',
-              isDragging
-                ? 'border-[#5b6300] dark:border-[#c2cf47] bg-[#f1f6e3] dark:bg-[#2d3226]/30 text-[#5b6300] dark:text-[#c2cf47]'
-                : 'border-[#d3dcc0] dark:border-[#2d3226] text-[#767870] dark:text-[#464841] hover:border-[#5b6300] dark:hover:border-[#c2cf47] hover:text-[#5b6300] dark:hover:text-[#c2cf47]'
-            )}
-          >
-            <Upload className="w-8 h-8" />
-            <span className="text-sm font-medium">
-              {isDragging ? 'Drop to upload' : 'Click or drag a .md file here'}
-            </span>
-            <span className="text-xs">Frontmatter will be auto-extracted and fields filled in</span>
-          </div>
-        ) : (
-          <div className={cn(
-            'flex items-start gap-3 p-4 rounded-[0.75rem]',
-            parseState === 'error' ? 'bg-red-50 dark:bg-red-950/30' : 'bg-[#f7fce9] dark:bg-[#2d3226]/40'
-          )}>
-            {parseState === 'parsing' ? (
-              <Loader2 className="w-5 h-5 mt-0.5 animate-spin text-[#5b6300] dark:text-[#c2cf47] shrink-0" />
-            ) : parseState === 'error' ? (
-              <AlertCircle className="w-5 h-5 mt-0.5 text-red-500 shrink-0" />
-            ) : (
-              <CheckCircle className="w-5 h-5 mt-0.5 text-emerald-500 shrink-0" />
-            )}
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-[#181d12] dark:text-[#f7fce9] truncate">{mdFile.name}</p>
-              {parseState === 'parsing' && <p className="text-xs text-[#767870] dark:text-[#464841] mt-0.5">Parsing…</p>}
-              {parseState === 'ok' && <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-0.5">Parsed · fields auto-filled</p>}
-              {parseState === 'error' && parseErrors.length > 0 && (
-                <ul className="mt-1 space-y-0.5">
-                  {parseErrors.map((err, i) => (
-                    <li key={i} className="text-xs text-red-600 dark:text-red-400">{err}</li>
-                  ))}
-                </ul>
+          {/* Mode toggle */}
+          <div className="inline-flex p-1 rounded-full bg-[#f1f6e3] dark:bg-[#2d3226]/60 border border-[#e0e5d2] dark:border-[#2d3226]">
+            <button
+              type="button"
+              onClick={() => switchMode('upload')}
+              className={cn(
+                'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors',
+                inputMode === 'upload'
+                  ? 'bg-white dark:bg-[#1c2217] text-[#5b6300] dark:text-[#c2cf47] shadow-sm'
+                  : 'text-[#767870] dark:text-[#464841] hover:text-[#181d12] dark:hover:text-[#f7fce9]'
               )}
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <button onClick={() => fileInputRef.current?.click()} className="text-xs text-[#5b6300] dark:text-[#c2cf47] hover:underline">
-                Replace
-              </button>
-              <button
-                onClick={() => { setMdFile(null); setParseState('idle'); setParseErrors([]) }}
-                className="text-[#767870] hover:text-[#181d12] dark:hover:text-[#f7fce9] transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+            >
+              <Upload className="w-3.5 h-3.5" />
+              Upload .md
+            </button>
+            <button
+              type="button"
+              onClick={() => switchMode('paste')}
+              className={cn(
+                'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors',
+                inputMode === 'paste'
+                  ? 'bg-white dark:bg-[#1c2217] text-[#5b6300] dark:text-[#c2cf47] shadow-sm'
+                  : 'text-[#767870] dark:text-[#464841] hover:text-[#181d12] dark:hover:text-[#f7fce9]'
+              )}
+            >
+              <ClipboardPaste className="w-3.5 h-3.5" />
+              Paste Markdown
+            </button>
           </div>
+        </div>
+
+        {inputMode === 'upload' ? (
+          <>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".md,.markdown"
+              className="hidden"
+              onChange={(e) => e.target.files?.[0] && handleFileInput(e.target.files[0])}
+            />
+
+            {parseState === 'idle' || !mdFile ? (
+              <div
+                onDragOver={onDragOver}
+                onDragLeave={onDragLeave}
+                onDrop={onDrop}
+                onClick={() => fileInputRef.current?.click()}
+                className={cn(
+                  'w-full border-2 border-dashed rounded-[1rem] py-12 flex flex-col items-center gap-3 cursor-pointer transition-colors select-none',
+                  isDragging
+                    ? 'border-[#5b6300] dark:border-[#c2cf47] bg-[#f1f6e3] dark:bg-[#2d3226]/30 text-[#5b6300] dark:text-[#c2cf47]'
+                    : 'border-[#d3dcc0] dark:border-[#2d3226] text-[#767870] dark:text-[#464841] hover:border-[#5b6300] dark:hover:border-[#c2cf47] hover:text-[#5b6300] dark:hover:text-[#c2cf47]'
+                )}
+              >
+                <Upload className="w-8 h-8" />
+                <span className="text-sm font-medium">
+                  {isDragging ? 'Drop to upload' : 'Click or drag a .md file here'}
+                </span>
+                <span className="text-xs">Frontmatter will be auto-extracted and fields filled in</span>
+              </div>
+            ) : (
+              <div className={cn(
+                'flex items-start gap-3 p-4 rounded-[0.75rem]',
+                parseState === 'error' ? 'bg-red-50 dark:bg-red-950/30' : 'bg-[#f7fce9] dark:bg-[#2d3226]/40'
+              )}>
+                {parseState === 'parsing' ? (
+                  <Loader2 className="w-5 h-5 mt-0.5 animate-spin text-[#5b6300] dark:text-[#c2cf47] shrink-0" />
+                ) : parseState === 'error' ? (
+                  <AlertCircle className="w-5 h-5 mt-0.5 text-red-500 shrink-0" />
+                ) : (
+                  <CheckCircle className="w-5 h-5 mt-0.5 text-emerald-500 shrink-0" />
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-[#181d12] dark:text-[#f7fce9] truncate">{mdFile.name}</p>
+                  {parseState === 'parsing' && <p className="text-xs text-[#767870] dark:text-[#464841] mt-0.5">Parsing…</p>}
+                  {parseState === 'ok' && <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-0.5">Parsed · fields auto-filled</p>}
+                  {parseState === 'error' && parseErrors.length > 0 && (
+                    <ul className="mt-1 space-y-0.5">
+                      {parseErrors.map((err, i) => (
+                        <li key={i} className="text-xs text-red-600 dark:text-red-400">{err}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button onClick={() => fileInputRef.current?.click()} className="text-xs text-[#5b6300] dark:text-[#c2cf47] hover:underline">
+                    Replace
+                  </button>
+                  <button
+                    onClick={() => { setMdFile(null); setParseState('idle'); setParseErrors([]) }}
+                    className="text-[#767870] hover:text-[#181d12] dark:hover:text-[#f7fce9] transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            <div className="flex items-start justify-between gap-3 mb-3 flex-wrap">
+              <p className="text-xs text-[#767870] dark:text-[#464841] flex-1 min-w-[240px]">
+                Paste Markdown below. A YAML frontmatter block (between <code className="font-mono">---</code> fences) is optional — title, slug, category, tags, etc. will be auto-filled when present.
+              </p>
+              <MarkdownImageUploadButton
+                textareaRef={pasteTextareaRef}
+                value={pastedMarkdown}
+                onChange={setPastedMarkdown}
+              />
+            </div>
+            <textarea
+              ref={pasteTextareaRef}
+              value={pastedMarkdown}
+              onChange={(e) => setPastedMarkdown(e.target.value)}
+              rows={14}
+              spellCheck={false}
+              placeholder={`---\ntitle: "Example Post"\nslug: "example-post"\ncategory: "tech"\ntags: ["ai", "code"]\n---\n\n# Example Post\n\nPaste your Markdown content here…`}
+              className="w-full rounded-[0.75rem] border border-[#e0e5d2] dark:border-[#2d3226] bg-[#f7fce9] dark:bg-[#2d3226] text-[#181d12] dark:text-[#f7fce9] px-4 py-3 text-sm font-mono outline-none focus:border-[#5b6300] dark:focus:border-[#c2cf47] transition-colors placeholder:text-[#767870] dark:placeholder:text-[#464841] resize-y"
+            />
+
+            <div className="flex items-center justify-between gap-3 mt-3 flex-wrap">
+              <div className="flex-1 min-w-0">
+                {parseState === 'ok' && (
+                  <p className="inline-flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400">
+                    <CheckCircle className="w-3.5 h-3.5" />
+                    Parsed · fields auto-filled
+                  </p>
+                )}
+                {parseState === 'parsing' && (
+                  <p className="inline-flex items-center gap-1.5 text-xs text-[#767870] dark:text-[#464841]">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    Parsing…
+                  </p>
+                )}
+                {parseState === 'error' && parseErrors.length > 0 && (
+                  <ul className="space-y-0.5">
+                    {parseErrors.map((err, i) => (
+                      <li key={i} className="inline-flex items-start gap-1.5 text-xs text-red-600 dark:text-red-400">
+                        <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                        {err}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                {pastedMarkdown && (
+                  <button
+                    type="button"
+                    onClick={() => { setPastedMarkdown(''); setParseState('idle'); setParseErrors([]) }}
+                    className="text-xs text-[#767870] dark:text-[#464841] hover:text-[#181d12] dark:hover:text-[#f7fce9] transition-colors"
+                  >
+                    Clear
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={handleParsePasted}
+                  disabled={!pastedMarkdown.trim() || parseState === 'parsing'}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#5b6300] text-white text-xs font-semibold hover:bg-[#4a5100] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {parseState === 'parsing' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ClipboardPaste className="w-3.5 h-3.5" />}
+                  Parse Markdown
+                </button>
+              </div>
+            </div>
+          </>
         )}
       </div>
 

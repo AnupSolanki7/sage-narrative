@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireUser } from '@/lib/auth/session'
 import { getUserPostById, updateUserPost, deleteUserPost } from '@/lib/db/posts'
 import { parseMarkdownFile } from '@/lib/markdown/parser'
+import { notifyNewPostIfNeeded } from '@/lib/email/notifyNewPost'
 
 interface Params { params: { id: string } }
 
@@ -29,8 +30,19 @@ export async function PUT(req: NextRequest, { params }: Params) {
       if (!body.readingTime) body.readingTime = parsed.readingTime
     }
 
+    // Capture pre-update status so we can detect draft → published transitions.
+    const before = await getUserPostById(params.id, session.userId!)
+    if (!before) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
     const post = await updateUserPost(params.id, session.userId!, body)
     if (!post) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+    // Only notify on a real draft → published transition via edit.
+    // notifyNewPostIfNeeded additionally dedupes via notificationSent.
+    if (before.status !== 'published' && post.status === 'published') {
+      await notifyNewPostIfNeeded(post)
+    }
+
     return NextResponse.json({ post })
   } catch (err: unknown) {
     const e = err as { code?: number; message?: string }

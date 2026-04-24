@@ -130,11 +130,14 @@ function extractFirstParagraph(markdown: string): string {
 // ---------------------------------------------------------------------------
 
 /**
- * Parse a markdown file string entirely on the client.
+ * Parse a markdown string entirely on the client.
+ * Works for both uploaded `.md` files and raw text pasted into a textarea.
+ *
  * Uses `gray-matter` for frontmatter; no remark/rehype (those run server-side
  * during save). Applies fallback inference for every missing field.
  */
-export function parseMarkdownPost(fileText: string): ParsedPostDraft {
+export function parseMarkdownContent(markdown: string): ParsedPostDraft {
+  const fileText = markdown
   // 1. Remove outer code-fence wrapper if the whole file is fenced
   const unwrapped = unwrapOuterMarkdownFence(fileText)
 
@@ -232,3 +235,6 @@ export function parseMarkdownPost(fileText: string): ParsedPostDraft {
     validationErrors,
   }
 }
+
+/** Backward-compatible alias — older imports used `parseMarkdownPost`. */
+export const parseMarkdownPost = parseMarkdownContent

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireUser } from '@/lib/auth/session'
 import { getUserPosts, createPost } from '@/lib/db/posts'
 import { parseMarkdownFile, generateSlugFromTitle } from '@/lib/markdown/parser'
+import { notifyNewPostIfNeeded } from '@/lib/email/notifyNewPost'
 import type { DbPost } from '@/types'
 
 export async function GET() {
@@ -37,6 +38,10 @@ export async function POST(req: NextRequest) {
       authorId: session.userId!,
       author:   session.userName ?? session.userEmail ?? '',
     })
+
+    // Fire notification if the user chose "Publish now" on creation.
+    // No-op for drafts; dedupes via post.notificationSent.
+    await notifyNewPostIfNeeded(post)
 
     return NextResponse.json({ post }, { status: 201 })
   } catch (err: unknown) {

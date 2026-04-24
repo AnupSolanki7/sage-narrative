@@ -7,7 +7,6 @@ import ArticleHeader from '@/components/ArticleHeader'
 import MarkdownRenderer from '@/components/MarkdownRenderer'
 import TableOfContents from '@/components/TableOfContents'
 import StickySubscribeCard from '@/components/StickySubscribeCard'
-import ReadingProgress from '@/components/ReadingProgress'
 import RelatedPosts from '@/components/RelatedPosts'
 import AuthorCard from '@/components/AuthorCard'
 import NewsletterSection from '@/components/NewsletterSection'
@@ -113,7 +112,6 @@ export default async function ArticlePage({ params }: PageProps) {
 
   return (
     <>
-      <ReadingProgress />
       <article className="max-w-7xl mx-auto px-4 md:px-8 py-8 md:py-12">
         {/* Article header */}
         <div className="max-w-7xl mx-auto">

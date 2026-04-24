@@ -3,9 +3,12 @@
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Upload, ImageIcon, Loader2, Eye, EyeOff, Trash2, X, ExternalLink } from 'lucide-react'
+import { Upload, ImageIcon, Loader2, Eye, EyeOff, Trash2, X, ExternalLink, ClipboardPaste } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { DbPost } from '@/types'
+import MarkdownImageUploadButton from '@/components/dashboard/MarkdownImageUploadButton'
+
+type ReplaceMode = 'upload' | 'paste'
 
 interface EditUserPostFormProps {
   post: DbPost
@@ -13,8 +16,9 @@ interface EditUserPostFormProps {
 
 export default function EditUserPostForm({ post }: EditUserPostFormProps) {
   const router       = useRouter()
-  const imageInputRef   = useRef<HTMLInputElement>(null)
-  const mdFileInputRef  = useRef<HTMLInputElement>(null)
+  const imageInputRef     = useRef<HTMLInputElement>(null)
+  const mdFileInputRef    = useRef<HTMLInputElement>(null)
+  const pasteTextareaRef  = useRef<HTMLTextAreaElement>(null)
 
   const [title,          setTitle]          = useState(post.title)
   const [subtitle,       setSubtitle]       = useState(post.subtitle ?? '')
@@ -30,6 +34,8 @@ export default function EditUserPostForm({ post }: EditUserPostFormProps) {
   const [imageUploading,  setImageUploading]  = useState(false)
   const [mdReplaceLoading, setMdReplaceLoading] = useState(false)
   const [mdReplaceNote,   setMdReplaceNote]   = useState('')
+  const [replaceMode,     setReplaceMode]     = useState<ReplaceMode>('upload')
+  const [pastedMarkdown,  setPastedMarkdown]  = useState('')
 
   const [saving,       setSaving]       = useState(false)
   const [saveError,    setSaveError]    = useState('')
@@ -51,18 +57,17 @@ export default function EditUserPostForm({ post }: EditUserPostFormProps) {
     }
   }
 
-  async function handleMdReplace(file: File) {
+  async function sendReplace(text: string, successMsg: string) {
     setMdReplaceLoading(true)
     setMdReplaceNote('')
     try {
-      const text = await file.text()
-      const res  = await fetch(`/api/user/posts/${post._id}`, {
+      const res = await fetch(`/api/user/posts/${post._id}`, {
         method:  'PUT',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ contentRaw: text }),
       })
       if (res.ok) {
-        setMdReplaceNote('Content updated from new file.')
+        setMdReplaceNote(successMsg)
         router.refresh()
       } else {
         const data = await res.json()
@@ -71,6 +76,20 @@ export default function EditUserPostForm({ post }: EditUserPostFormProps) {
     } finally {
       setMdReplaceLoading(false)
     }
+  }
+
+  async function handleMdReplace(file: File) {
+    const text = await file.text()
+    await sendReplace(text, 'Content updated from new file.')
+  }
+
+  async function handlePasteReplace() {
+    if (!pastedMarkdown.trim()) {
+      setMdReplaceNote('Paste some Markdown content first.')
+      return
+    }
+    await sendReplace(pastedMarkdown, 'Content updated from pasted Markdown.')
+    setPastedMarkdown('')
   }
 
   async function handleSave() {
@@ -262,25 +281,102 @@ export default function EditUserPostForm({ post }: EditUserPostFormProps) {
 
       {/* Replace markdown content */}
       <div className="bg-white dark:bg-[#1c2217] rounded-[1.5rem] border border-[#e0e5d2] dark:border-[#2d3226] p-6">
-        <h2 className="font-semibold text-[#181d12] dark:text-[#f7fce9] mb-2">Replace Content</h2>
+        <div className="flex items-center justify-between mb-2 gap-3 flex-wrap">
+          <h2 className="font-semibold text-[#181d12] dark:text-[#f7fce9]">Replace Content</h2>
+          <div className="inline-flex p-1 rounded-full bg-[#f1f6e3] dark:bg-[#2d3226]/60 border border-[#e0e5d2] dark:border-[#2d3226]">
+            <button
+              type="button"
+              onClick={() => { setReplaceMode('upload'); setMdReplaceNote('') }}
+              className={cn(
+                'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors',
+                replaceMode === 'upload'
+                  ? 'bg-white dark:bg-[#1c2217] text-[#5b6300] dark:text-[#c2cf47] shadow-sm'
+                  : 'text-[#767870] dark:text-[#464841] hover:text-[#181d12] dark:hover:text-[#f7fce9]'
+              )}
+            >
+              <Upload className="w-3.5 h-3.5" />
+              Upload .md
+            </button>
+            <button
+              type="button"
+              onClick={() => { setReplaceMode('paste'); setMdReplaceNote('') }}
+              className={cn(
+                'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors',
+                replaceMode === 'paste'
+                  ? 'bg-white dark:bg-[#1c2217] text-[#5b6300] dark:text-[#c2cf47] shadow-sm'
+                  : 'text-[#767870] dark:text-[#464841] hover:text-[#181d12] dark:hover:text-[#f7fce9]'
+              )}
+            >
+              <ClipboardPaste className="w-3.5 h-3.5" />
+              Paste Markdown
+            </button>
+          </div>
+        </div>
         <p className="text-xs text-[#767870] dark:text-[#464841] mb-4">
-          Upload a new .md file to replace the post body. Metadata above is preserved.
+          {replaceMode === 'upload'
+            ? 'Upload a new .md file to replace the post body. Metadata above is preserved.'
+            : 'Paste Markdown below to replace the post body. Metadata above is preserved.'}
         </p>
-        <input
-          ref={mdFileInputRef}
-          type="file"
-          accept=".md,.markdown"
-          className="hidden"
-          onChange={(e) => e.target.files?.[0] && handleMdReplace(e.target.files[0])}
-        />
-        <button
-          onClick={() => mdFileInputRef.current?.click()}
-          disabled={mdReplaceLoading}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-full border border-[#e0e5d2] dark:border-[#2d3226] text-sm text-[#464841] dark:text-[#c6c7be] hover:bg-[#f1f6e3] dark:hover:bg-[#2d3226]/50 transition-colors disabled:opacity-50"
-        >
-          {mdReplaceLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-          Upload new .md file
-        </button>
+
+        {replaceMode === 'upload' ? (
+          <>
+            <input
+              ref={mdFileInputRef}
+              type="file"
+              accept=".md,.markdown"
+              className="hidden"
+              onChange={(e) => e.target.files?.[0] && handleMdReplace(e.target.files[0])}
+            />
+            <button
+              onClick={() => mdFileInputRef.current?.click()}
+              disabled={mdReplaceLoading}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-full border border-[#e0e5d2] dark:border-[#2d3226] text-sm text-[#464841] dark:text-[#c6c7be] hover:bg-[#f1f6e3] dark:hover:bg-[#2d3226]/50 transition-colors disabled:opacity-50"
+            >
+              {mdReplaceLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+              Upload new .md file
+            </button>
+          </>
+        ) : (
+          <>
+            <div className="flex justify-end mb-2">
+              <MarkdownImageUploadButton
+                textareaRef={pasteTextareaRef}
+                value={pastedMarkdown}
+                onChange={setPastedMarkdown}
+              />
+            </div>
+            <textarea
+              ref={pasteTextareaRef}
+              value={pastedMarkdown}
+              onChange={(e) => setPastedMarkdown(e.target.value)}
+              rows={12}
+              spellCheck={false}
+              placeholder={`# Your post body…`}
+              className="w-full rounded-[0.75rem] border border-[#e0e5d2] dark:border-[#2d3226] bg-[#f7fce9] dark:bg-[#2d3226] text-[#181d12] dark:text-[#f7fce9] px-4 py-3 text-sm font-mono outline-none focus:border-[#5b6300] dark:focus:border-[#c2cf47] transition-colors placeholder:text-[#767870] dark:placeholder:text-[#464841] resize-y"
+            />
+            <div className="flex items-center gap-2 mt-3">
+              <button
+                type="button"
+                onClick={handlePasteReplace}
+                disabled={mdReplaceLoading || !pastedMarkdown.trim()}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#5b6300] text-white text-sm font-semibold hover:bg-[#4a5100] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {mdReplaceLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ClipboardPaste className="w-4 h-4" />}
+                Replace content
+              </button>
+              {pastedMarkdown && (
+                <button
+                  type="button"
+                  onClick={() => setPastedMarkdown('')}
+                  className="text-xs text-[#767870] dark:text-[#464841] hover:text-[#181d12] dark:hover:text-[#f7fce9] transition-colors"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+          </>
+        )}
+
         {mdReplaceNote && (
           <p className="mt-3 text-xs text-emerald-600 dark:text-emerald-400">{mdReplaceNote}</p>
         )}

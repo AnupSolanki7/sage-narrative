@@ -31,13 +31,33 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [user, setUser] = useState<NavUser | null>(null)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const [readingProgress, setReadingProgress] = useState(0)
   const menuRef = useRef<HTMLDivElement>(null)
 
+  // Reading-progress fill only makes sense on article pages (/blog/<slug>),
+  // not on the index listing or other routes.
+  const showReadingProgress =
+    pathname.startsWith('/blog/') && pathname !== '/blog' && pathname !== '/blog/'
+
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 16)
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 16)
+
+      if (showReadingProgress) {
+        const docHeight = document.documentElement.scrollHeight - window.innerHeight
+        const pct = docHeight > 0 ? (window.scrollY / docHeight) * 100 : 0
+        setReadingProgress(Math.min(100, Math.max(0, pct)))
+      }
+    }
+    handleScroll()
     window.addEventListener('scroll', handleScroll, { passive: true })
     return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
+  }, [showReadingProgress])
+
+  // Reset progress when navigating away from an article.
+  useEffect(() => {
+    if (!showReadingProgress) setReadingProgress(0)
+  }, [showReadingProgress])
 
   // Fetch auth state
   useEffect(() => {
@@ -79,15 +99,29 @@ export default function Navbar() {
       <header className="fixed top-0 left-0 right-0 z-40 px-4 md:px-8 pt-4">
         <nav
           className={cn(
-            'max-w-7xl mx-auto rounded-full transition-all duration-300',
+            'relative max-w-7xl mx-auto rounded-full overflow-hidden transition-all duration-300',
             'bg-white/90 dark:bg-[#1c2217]/90 backdrop-blur-md',
             'border border-[#e0e5d2] dark:border-[#2d3226]',
             scrolled
               ? 'shadow-premium py-2 px-4'
               : 'shadow-card py-2.5 px-4'
           )}
+          role={showReadingProgress ? 'progressbar' : undefined}
+          aria-valuenow={showReadingProgress ? Math.round(readingProgress) : undefined}
+          aria-valuemin={showReadingProgress ? 0 : undefined}
+          aria-valuemax={showReadingProgress ? 100 : undefined}
+          aria-label={showReadingProgress ? 'Reading progress' : undefined}
         >
-          <div className="flex items-center justify-between gap-4">
+          {/* Reading-progress fill — sits behind the nav content, clipped by the pill's rounded corners. */}
+          {showReadingProgress && (
+            <div
+              aria-hidden="true"
+              className="absolute inset-y-0 left-0 bg-[#d3e056]/40 dark:bg-[#c2cf47]/20 transition-[width] duration-75 ease-out pointer-events-none"
+              style={{ width: `${readingProgress}%` }}
+            />
+          )}
+
+          <div className="relative flex items-center justify-between gap-4">
             {/* Logo / Brand */}
             <Link href="/" className="shrink-0 flex items-center" aria-label="Sage Narrative — home">
               <SageLogo variant="full" height={38} />
