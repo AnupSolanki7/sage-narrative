@@ -3,14 +3,25 @@ import CategoryPageHeader from '@/components/CategoryPageHeader'
 import PostCard from '@/components/PostCard'
 import SectionHeader from '@/components/SectionHeader'
 import NewsletterSection from '@/components/NewsletterSection'
+import JsonLd from '@/components/JsonLd'
 import { getPostsByCategory } from '@/lib/db/posts'
 import { dbPostToMockPost } from '@/types'
-import type { MockPost } from '@/types'
+import type { DbPostSummary, MockPost } from '@/types'
+import {
+  getDefaultSeo,
+  buildCollectionJsonLd,
+  buildBreadcrumbJsonLd,
+} from '@/lib/seo'
 
-export const metadata: Metadata = {
-  title: 'Insights — Reflections & Ideas | Sage Narrative',
-  description: 'Brief reflections and philosophical fragments for the discerning reader who prefers depth over brevity.',
-}
+const CATEGORY_DESCRIPTION =
+  'Brief reflections and philosophical fragments for the discerning reader who prefers depth over brevity.'
+
+export const metadata: Metadata = getDefaultSeo({
+  title: 'Insights — Reflections & Ideas',
+  description: CATEGORY_DESCRIPTION,
+  path: '/insights',
+  type: 'website',
+})
 
 const mockInsights: MockPost[] = [
   { id: 'i1', title: 'Finding Stillness in the Attention Economy', slug: 'finding-stillness-attention-economy', excerpt: 'Strategic boredom as a tool for radical creativity and psychological preservation in an age designed to capture every idle moment.', category: 'Insights', categorySlug: 'insights', author: { name: 'Elena Vasquez', role: 'Essayist', initials: 'EV' }, publishedAt: '2026-03-08T00:00:00Z', readingTime: 5, featured: false, postType: 'insight', coverGradient: 'from-[#f0d9c2] to-[#c9a878]' },
@@ -23,14 +34,29 @@ const mockInsights: MockPost[] = [
 
 export default async function InsightsPage() {
   let posts: MockPost[] = []
+  let dbPosts: DbPostSummary[] = []
   try {
-    const dbPosts = await getPostsByCategory('insights')
+    dbPosts = await getPostsByCategory('insights')
     if (dbPosts.length > 0) posts = dbPosts.map(dbPostToMockPost)
   } catch {}
   const displayPosts = posts.length > 0 ? posts : mockInsights
 
+  const jsonLd = [
+    buildCollectionJsonLd({
+      path: '/insights',
+      name: 'Insights — Reflections & Ideas',
+      description: CATEGORY_DESCRIPTION,
+      posts: dbPosts,
+    }),
+    buildBreadcrumbJsonLd([
+      { name: 'Home',     path: '/' },
+      { name: 'Insights', path: '/insights' },
+    ]),
+  ]
+
   return (
     <div>
+      <JsonLd data={jsonLd} />
       <CategoryPageHeader category="insights" postCount={displayPosts.length} />
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-12 md:py-16">
         <SectionHeader title="All insights" subtitle="Published in chronological order, newest first." />

@@ -5,7 +5,16 @@ import { getUserByUsername } from '@/lib/db/users'
 import { getPostsByAuthor } from '@/lib/db/posts'
 import { dbPostToMockPost } from '@/types'
 import PostCard from '@/components/PostCard'
+import JsonLd from '@/components/JsonLd'
 import type { DbPostSummary } from '@/types'
+import {
+  SITE_NAME,
+  getDefaultSeo,
+  NOINDEX_METADATA,
+  buildAuthorJsonLd,
+  buildProfilePageJsonLd,
+  buildBreadcrumbJsonLd,
+} from '@/lib/seo'
 
 interface Props {
   params: { username: string }
@@ -13,11 +22,19 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const user = await getUserByUsername(params.username).catch(() => null)
-  if (!user) return { title: 'Author not found' }
-  return {
-    title:       `${user.name} — Sage Narrative`,
-    description: user.bio ?? `Read posts by ${user.name} on Sage Narrative.`,
+  if (!user) {
+    return {
+      title: 'Author not found',
+      ...NOINDEX_METADATA,
+    }
   }
+  return getDefaultSeo({
+    title: `${user.name} — ${SITE_NAME}`,
+    description: user.bio ?? `Read posts by ${user.name} on ${SITE_NAME}.`,
+    path: `/author/${user.username}`,
+    image: user.avatar || null,
+    type: 'profile',
+  })
 }
 
 export default async function AuthorPage({ params }: Props) {
@@ -37,8 +54,16 @@ export default async function AuthorPage({ params }: Props) {
   const hasSocial = Object.values(socialLinks).some(Boolean)
   const publishedCount = posts.length
 
+  const authorJsonLd = buildAuthorJsonLd(user)
+  const profileJsonLd = buildProfilePageJsonLd(user, publishedCount)
+  const breadcrumbJsonLd = buildBreadcrumbJsonLd([
+    { name: 'Home',    path: '/' },
+    { name: user.name, path: `/author/${user.username}` },
+  ])
+
   return (
     <div className="min-h-screen bg-[#f7fce9] dark:bg-[#181d12]">
+      <JsonLd data={[profileJsonLd, authorJsonLd, breadcrumbJsonLd]} />
       <div className="max-w-7xl mx-auto px-4 md:px-8 pt-32 pb-20">
 
         {/* Author hero header */}

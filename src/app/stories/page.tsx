@@ -3,14 +3,25 @@ import CategoryPageHeader from '@/components/CategoryPageHeader'
 import PostCard from '@/components/PostCard'
 import SectionHeader from '@/components/SectionHeader'
 import NewsletterSection from '@/components/NewsletterSection'
+import JsonLd from '@/components/JsonLd'
 import { getPostsByCategory } from '@/lib/db/posts'
 import { dbPostToMockPost } from '@/types'
-import type { MockPost } from '@/types'
+import type { DbPostSummary, MockPost } from '@/types'
+import {
+  getDefaultSeo,
+  buildCollectionJsonLd,
+  buildBreadcrumbJsonLd,
+} from '@/lib/seo'
 
-export const metadata: Metadata = {
-  title: 'Stories — Human Narratives | Sage Narrative',
-  description: 'Long-form explorations of contemporary life, memory, culture, and the spaces between people.',
-}
+const CATEGORY_DESCRIPTION =
+  'Long-form explorations of contemporary life, memory, culture, and the spaces between people.'
+
+export const metadata: Metadata = getDefaultSeo({
+  title: 'Stories — Human Narratives',
+  description: CATEGORY_DESCRIPTION,
+  path: '/stories',
+  type: 'website',
+})
 
 const mockStories: MockPost[] = [
   { id: 's1', title: 'Why We Still Long for Paper in a Screen-Saturated World', slug: 'longing-for-paper-screen-saturated-world', excerpt: 'Exploring the tactile permanence of physical media and its quiet resurgence among those who sense something essential has been lost.', category: 'Stories', categorySlug: 'stories', author: { name: 'Priya Anand', role: 'Contributing Writer', initials: 'PA' }, publishedAt: '2026-03-28T00:00:00Z', readingTime: 12, featured: false, postType: 'story', coverGradient: 'from-[#d3e056] to-[#a8b040]' },
@@ -23,14 +34,29 @@ const mockStories: MockPost[] = [
 
 export default async function StoriesPage() {
   let posts: MockPost[] = []
+  let dbPosts: DbPostSummary[] = []
   try {
-    const dbPosts = await getPostsByCategory('stories')
+    dbPosts = await getPostsByCategory('stories')
     if (dbPosts.length > 0) posts = dbPosts.map(dbPostToMockPost)
   } catch {}
   const displayPosts = posts.length > 0 ? posts : mockStories
 
+  const jsonLd = [
+    buildCollectionJsonLd({
+      path: '/stories',
+      name: 'Stories — Human Narratives',
+      description: CATEGORY_DESCRIPTION,
+      posts: dbPosts,
+    }),
+    buildBreadcrumbJsonLd([
+      { name: 'Home',    path: '/' },
+      { name: 'Stories', path: '/stories' },
+    ]),
+  ]
+
   return (
     <div>
+      <JsonLd data={jsonLd} />
       <CategoryPageHeader category="stories" postCount={displayPosts.length} />
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-12 md:py-16">
         <SectionHeader title="All stories" subtitle="Published in chronological order, newest first." />

@@ -1,6 +1,5 @@
 import { MetadataRoute } from 'next'
-
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sagenarrative.com'
+import { SITE_URL } from '@/lib/seo'
 
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -8,10 +7,19 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: '*',
         allow: '/',
-        disallow: ['/studio/', '/api/'],
+        disallow: [
+          '/dashboard',
+          '/dashboard/',
+          '/admin',
+          '/admin/',
+          '/login',
+          '/signup',
+          '/api/',
+          '/studio/',
+        ],
       },
     ],
-    sitemap: `${siteUrl}/sitemap.xml`,
-    host: siteUrl,
+    sitemap: `${SITE_URL}/sitemap.xml`,
+    host: SITE_URL,
   }
 }

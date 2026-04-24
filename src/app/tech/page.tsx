@@ -3,14 +3,25 @@ import CategoryPageHeader from '@/components/CategoryPageHeader'
 import PostCard from '@/components/PostCard'
 import SectionHeader from '@/components/SectionHeader'
 import NewsletterSection from '@/components/NewsletterSection'
+import JsonLd from '@/components/JsonLd'
 import { getPostsByCategory } from '@/lib/db/posts'
 import { dbPostToMockPost } from '@/types'
-import type { MockPost } from '@/types'
+import type { DbPostSummary, MockPost } from '@/types'
+import {
+  getDefaultSeo,
+  buildCollectionJsonLd,
+  buildBreadcrumbJsonLd,
+} from '@/lib/seo'
 
-export const metadata: Metadata = {
-  title: 'Tech — Technology & Culture | Sage Narrative',
-  description: 'Deep investigations into software, AI, digital culture, and the human implications of the systems we build and inhabit.',
-}
+const CATEGORY_DESCRIPTION =
+  'Deep investigations into software, AI, digital culture, and the human implications of the systems we build and inhabit.'
+
+export const metadata: Metadata = getDefaultSeo({
+  title: 'Tech — Technology & Culture',
+  description: CATEGORY_DESCRIPTION,
+  path: '/tech',
+  type: 'website',
+})
 
 const mockTechPosts: MockPost[] = [
   { id: 't1', title: 'The Ghost in the Large Language Model', slug: 'ghost-in-the-large-language-model', excerpt: 'Questioning the boundaries of consciousness as artificial intelligence begins to mimic human intuition with unsettling accuracy.', category: 'Tech', categorySlug: 'tech', author: { name: 'Marcus Webb', role: 'Senior Writer', initials: 'MW' }, publishedAt: '2026-03-15T00:00:00Z', readingTime: 8, featured: true, postType: 'tech', coverGradient: 'from-[#1a2d4a] to-[#0d1a2e]' },
@@ -23,14 +34,29 @@ const mockTechPosts: MockPost[] = [
 
 export default async function TechPage() {
   let posts: MockPost[] = []
+  let dbPosts: DbPostSummary[] = []
   try {
-    const dbPosts = await getPostsByCategory('tech')
+    dbPosts = await getPostsByCategory('tech')
     if (dbPosts.length > 0) posts = dbPosts.map(dbPostToMockPost)
   } catch {}
   const displayPosts = posts.length > 0 ? posts : mockTechPosts
 
+  const jsonLd = [
+    buildCollectionJsonLd({
+      path: '/tech',
+      name: 'Tech — Technology & Culture',
+      description: CATEGORY_DESCRIPTION,
+      posts: dbPosts,
+    }),
+    buildBreadcrumbJsonLd([
+      { name: 'Home', path: '/' },
+      { name: 'Tech', path: '/tech' },
+    ]),
+  ]
+
   return (
     <div>
+      <JsonLd data={jsonLd} />
       <CategoryPageHeader category="tech" postCount={displayPosts.length} />
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-12 md:py-16">
         <SectionHeader title="All tech essays" subtitle="Published in chronological order, newest first." />

@@ -10,7 +10,14 @@ import StickySubscribeCard from '@/components/StickySubscribeCard'
 import RelatedPosts from '@/components/RelatedPosts'
 import AuthorCard from '@/components/AuthorCard'
 import NewsletterSection from '@/components/NewsletterSection'
+import JsonLd from '@/components/JsonLd'
 import type { MockPost } from '@/types'
+import {
+  getDefaultSeo,
+  canonicalUrl,
+  buildArticleJsonLd,
+  buildBreadcrumbJsonLd,
+} from '@/lib/seo'
 
 const MOCK_SLUG = 'ghost-in-the-large-language-model'
 
@@ -39,28 +46,31 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     if (post) {
       const mockPost   = dbPostToMockPost(post)
       const authorName = mockPost.author.name
-      return {
-        title: post.seoTitle ?? post.title,
-        description: post.seoDescription ?? post.excerpt,
-        openGraph: {
-          title: post.seoTitle ?? post.title,
-          description: post.seoDescription ?? post.excerpt,
-          type: 'article',
-          publishedTime: post.publishedAt,
-          authors: authorName ? [authorName] : undefined,
-        },
-      }
+      return getDefaultSeo({
+        title: post.seoTitle || post.title,
+        description: post.seoDescription || post.excerpt || post.subtitle,
+        path: `/blog/${post.slug}`,
+        image: post.coverImage || null,
+        type: 'article',
+        publishedTime: post.publishedAt,
+        modifiedTime: post.updatedAt,
+        authors: authorName ? [authorName] : undefined,
+        tags: post.tags,
+      })
     }
   } catch {}
 
   if (params.slug === MOCK_SLUG) {
-    return {
-      title: 'The Ghost in the Large Language Model — Sage Narrative',
-      description: 'Questioning the boundaries of consciousness as artificial intelligence begins to mimic human intuition.',
-    }
+    return getDefaultSeo({
+      title: 'The Ghost in the Large Language Model',
+      description:
+        'Questioning the boundaries of consciousness as artificial intelligence begins to mimic human intuition.',
+      path: `/blog/${MOCK_SLUG}`,
+      type: 'article',
+    })
   }
 
-  return { title: 'Article — Sage Narrative' }
+  return { title: 'Article' }
 }
 
 export async function generateStaticParams() {
@@ -110,8 +120,29 @@ export default async function ArticlePage({ params }: PageProps) {
   const contentHtml  = post?.contentHtml ?? mockArticleHtml
   const coverImage   = post?.coverImage
 
+  // Structured data — only emit when we have a real DB post so the schema
+  // values are authoritative. Breadcrumb is safe to emit in every case.
+  const categoryLabel = category
+  const categoryPath  = `/${categorySlug}`
+  const breadcrumbJsonLd = buildBreadcrumbJsonLd([
+    { name: 'Home',         path: '/' },
+    { name: categoryLabel,  path: categoryPath },
+    { name: title,          path: `/blog/${post?.slug ?? params.slug}` },
+  ])
+  const articleJsonLd = post
+    ? buildArticleJsonLd({
+        post,
+        authorName,
+        authorUrl: authorUsername ? canonicalUrl(`/author/${authorUsername}`) : undefined,
+        authorImage: authorAvatar,
+      })
+    : null
+
   return (
     <>
+      <JsonLd
+        data={articleJsonLd ? [articleJsonLd, breadcrumbJsonLd] : [breadcrumbJsonLd]}
+      />
       <article className="max-w-7xl mx-auto px-4 md:px-8 py-8 md:py-12">
         {/* Article header */}
         <div className="max-w-7xl mx-auto">

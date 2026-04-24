@@ -4,12 +4,15 @@ import NewsletterSection from '@/components/NewsletterSection'
 import PostCard from '@/components/PostCard'
 import type { Metadata } from 'next'
 import type { MockPost } from '@/types'
+import { getDefaultSeo } from '@/lib/seo'
 
-export const metadata: Metadata = {
-  title: 'About — Sage Narrative',
+export const metadata: Metadata = getDefaultSeo({
+  title: 'About',
   description:
     'The story behind Sage Narrative and the writers who contribute to it.',
-}
+  path: '/about',
+  type: 'website',
+})
 
 const featuredPieces: MockPost[] = [
   {

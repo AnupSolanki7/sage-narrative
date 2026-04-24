@@ -1,31 +1,43 @@
 import { MetadataRoute } from 'next'
-import { getAllPublishedSlugs } from '@/lib/db/posts'
-
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sagenarrative.com'
+import { getPublishedPosts } from '@/lib/db/posts'
+import { getAllAuthorsForSitemap } from '@/lib/db/users'
+import { SITE_URL } from '@/lib/seo'
 
 const staticRoutes: MetadataRoute.Sitemap = [
-  { url: siteUrl, lastModified: new Date(), changeFrequency: 'daily', priority: 1.0 },
-  { url: `${siteUrl}/blog`, lastModified: new Date(), changeFrequency: 'daily', priority: 0.9 },
-  { url: `${siteUrl}/stories`, lastModified: new Date(), changeFrequency: 'weekly', priority: 0.8 },
-  { url: `${siteUrl}/tech`, lastModified: new Date(), changeFrequency: 'weekly', priority: 0.8 },
-  { url: `${siteUrl}/insights`, lastModified: new Date(), changeFrequency: 'weekly', priority: 0.8 },
-  { url: `${siteUrl}/about`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.6 },
+  { url: `${SITE_URL}/`,         lastModified: new Date(), changeFrequency: 'daily',   priority: 1.0 },
+  { url: `${SITE_URL}/blog`,     lastModified: new Date(), changeFrequency: 'daily',   priority: 0.9 },
+  { url: `${SITE_URL}/stories`,  lastModified: new Date(), changeFrequency: 'weekly',  priority: 0.8 },
+  { url: `${SITE_URL}/tech`,     lastModified: new Date(), changeFrequency: 'weekly',  priority: 0.8 },
+  { url: `${SITE_URL}/insights`, lastModified: new Date(), changeFrequency: 'weekly',  priority: 0.8 },
+  { url: `${SITE_URL}/about`,    lastModified: new Date(), changeFrequency: 'monthly', priority: 0.6 },
 ]
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  let dynamicRoutes: MetadataRoute.Sitemap = []
+  let postRoutes: MetadataRoute.Sitemap = []
+  let authorRoutes: MetadataRoute.Sitemap = []
 
   try {
-    const slugs = await getAllPublishedSlugs()
-    dynamicRoutes = slugs.map((slug) => ({
-      url: `${siteUrl}/blog/${slug}`,
-      lastModified: new Date(),
+    // getPublishedPosts already filters status: 'published' — drafts are never included.
+    const posts = await getPublishedPosts()
+    postRoutes = posts.map((p) => ({
+      url: `${SITE_URL}/blog/${p.slug}`,
+      lastModified: new Date(p.updatedAt ?? p.publishedAt ?? p.createdAt),
       changeFrequency: 'monthly' as const,
       priority: 0.7,
     }))
   } catch {
-    // DB not configured
+    // DB unavailable — static routes still ship.
   }
 
-  return [...staticRoutes, ...dynamicRoutes]
+  try {
+    const authors = await getAllAuthorsForSitemap()
+    authorRoutes = authors.map((a) => ({
+      url: `${SITE_URL}/author/${a.username}`,
+      lastModified: new Date(a.updatedAt),
+      changeFrequency: 'weekly' as const,
+      priority: 0.6,
+    }))
+  } catch {}
+
+  return [...staticRoutes, ...postRoutes, ...authorRoutes]
 }

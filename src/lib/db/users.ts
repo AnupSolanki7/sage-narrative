@@ -90,6 +90,21 @@ export async function checkUsernameAvailable(username: string): Promise<boolean>
   return !existing
 }
 
+/**
+ * Lightweight list used by the sitemap to surface every author profile page.
+ * Only returns fields needed to build the URL + lastModified entry.
+ */
+export async function getAllAuthorsForSitemap(): Promise<
+  { username: string; updatedAt: string }[]
+> {
+  await connectDB()
+  const docs = await User.find({}).select('username updatedAt').lean()
+  return (docs as { username: string; updatedAt: Date }[]).map((u) => ({
+    username: u.username,
+    updatedAt: (u.updatedAt ?? new Date()).toISOString(),
+  }))
+}
+
 // ── Update operations ────────────────────────────────────────────────────────
 
 export async function updateUserProfile(

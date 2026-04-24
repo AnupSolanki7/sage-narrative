@@ -1,11 +1,27 @@
+import type { Metadata } from 'next'
 import HeroSection from '@/components/HeroSection'
 import CategoryCard from '@/components/CategoryCard'
 import PostCard from '@/components/PostCard'
 import SectionHeader from '@/components/SectionHeader'
 import NewsletterSection from '@/components/NewsletterSection'
+import JsonLd from '@/components/JsonLd'
 import { getPublishedPosts, getFeaturedPost } from '@/lib/db/posts'
 import { dbPostToMockPost } from '@/types'
 import type { MockPost } from '@/types'
+import {
+  SITE_NAME,
+  SITE_DESCRIPTION,
+  getDefaultSeo,
+  canonicalUrl,
+  getAbsoluteUrl,
+} from '@/lib/seo'
+
+export const metadata: Metadata = getDefaultSeo({
+  title: `${SITE_NAME} — Stories, Tech & Human Insights`,
+  description: SITE_DESCRIPTION,
+  path: '/',
+  type: 'website',
+})
 
 const mockFeaturedPost: MockPost = {
   id: 'featured-1',
@@ -105,8 +121,28 @@ export default async function HomePage() {
   const displayFeatured = featuredPost ?? mockFeaturedPost
   const displayLatest = latestPosts.length > 0 ? latestPosts : mockLatestPosts
 
+  // CollectionPage schema listing the latest posts — rich homepage signal for crawlers.
+  const homeJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    '@id': canonicalUrl('/'),
+    url: canonicalUrl('/'),
+    name: SITE_NAME,
+    description: SITE_DESCRIPTION,
+    inLanguage: 'en-US',
+    isPartOf: { '@id': `${canonicalUrl('/')}#website` },
+    hasPart: displayLatest.slice(0, 10).map((p) => ({
+      '@type': 'BlogPosting',
+      headline: p.title,
+      url: canonicalUrl(`/blog/${p.slug}`),
+      datePublished: p.publishedAt,
+      image: p.coverImageUrl ? getAbsoluteUrl(p.coverImageUrl) : undefined,
+    })),
+  }
+
   return (
     <div>
+      <JsonLd data={homeJsonLd} />
       <HeroSection featuredPost={displayFeatured} />
 
       <section className="px-4 md:px-8 py-12 md:py-16 max-w-7xl mx-auto">
