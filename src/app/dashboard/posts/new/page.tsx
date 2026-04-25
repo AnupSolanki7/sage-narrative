@@ -2,10 +2,13 @@
 
 import { useState, useRef, DragEvent } from 'react'
 import { useRouter } from 'next/navigation'
-import { Upload, FileText, Loader2, CheckCircle, AlertCircle, X, ImageIcon, ClipboardPaste } from 'lucide-react'
+import { Upload, FileText, Loader2, CheckCircle, AlertCircle, X, ImageIcon, ClipboardPaste, Eye, Pencil, Sparkles, Lightbulb } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { parseMarkdownContent, type ParsedPostDraft } from '@/lib/markdown/parseMarkdownPost'
 import MarkdownImageUploadButton from '@/components/dashboard/MarkdownImageUploadButton'
+import PostPreview from '@/components/dashboard/PostPreview'
+import PublishChecklist, { checklistStatus } from '@/components/dashboard/PublishChecklist'
+import AIWritingAssistant from '@/components/dashboard/AIWritingAssistant'
 
 type InputMode = 'upload' | 'paste'
 
@@ -14,6 +17,10 @@ export default function DashboardNewPostPage() {
   const fileInputRef  = useRef<HTMLInputElement>(null)
   const imageInputRef = useRef<HTMLInputElement>(null)
   const pasteTextareaRef = useRef<HTMLTextAreaElement>(null)
+
+  // ── view mode (editor vs preview) ─────────────────────────────────────────
+  const [viewMode, setViewMode] = useState<'editor' | 'preview'>('editor')
+  const [previewSeen, setPreviewSeen] = useState(false)
 
   // ── markdown input mode ───────────────────────────────────────────────────
   const [inputMode, setInputMode] = useState<InputMode>('upload')
@@ -134,6 +141,18 @@ export default function DashboardNewPostPage() {
     setParseErrors([])
   }
 
+  /**
+   * Apply an AI-generated Markdown draft to the editor.
+   * Routes through the same parseMarkdownContent helper used for upload/paste,
+   * so AI output and user uploads share one code path.
+   */
+  function applyAIDraft(markdown: string) {
+    const draft = parseMarkdownContent(markdown)
+    applyDraft(draft)
+    setMdFile(null)              // detach any prior uploaded file
+    setPastedMarkdown(markdown)  // mirror into the paste pane in case user wants to tweak
+  }
+
   // ── drag-and-drop ─────────────────────────────────────────────────────────
 
   function onDragOver(e: DragEvent<HTMLDivElement>) { e.preventDefault(); setIsDragging(true) }
@@ -206,15 +225,137 @@ export default function DashboardNewPostPage() {
 
   const canSave = title.trim() && slug.trim() && contentRaw.trim()
 
+  const checklistInput = {
+    title,
+    category,
+    excerpt,
+    coverImage: coverImageUrl,
+    seoDescription,
+    contentRaw,
+    previewed: previewSeen,
+  }
+  const { requiredMet } = checklistStatus(checklistInput)
+
+  function handleSwitchView(next: 'editor' | 'preview') {
+    if (next === viewMode) return
+    if (next === 'preview') setPreviewSeen(true)
+    setViewMode(next)
+  }
+
   return (
     <div className="max-w-4xl mx-auto">
-      <div className="mb-8">
+      <div className="mb-6">
         <h1 className="font-serif font-bold text-3xl text-[#181d12] dark:text-[#f7fce9]">
-          New Post
+          Create a new story
         </h1>
-        <p className="text-sm text-[#767870] dark:text-[#464841] mt-1">
-          Upload a markdown file or paste Markdown text to auto-fill the form.
+        <p className="text-sm text-[#767870] dark:text-[#464841] mt-1 max-w-2xl">
+          Start with an idea, Markdown file, or rough draft. Use AI tools alongside
+          the editor to shape it into a polished blog, then preview before publishing.
         </p>
+      </div>
+
+      {/* Editor / Preview tabs */}
+      <div className="sticky top-2 z-10 mb-6">
+        <div className="inline-flex p-1 rounded-full bg-white dark:bg-[#1c2217] border border-[#e0e5d2] dark:border-[#2d3226] shadow-card">
+          <button
+            type="button"
+            onClick={() => handleSwitchView('editor')}
+            className={cn(
+              'flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold transition-colors',
+              viewMode === 'editor'
+                ? 'bg-[#5b6300] text-white'
+                : 'text-[#767870] dark:text-[#464841] hover:text-[#181d12] dark:hover:text-[#f7fce9]'
+            )}
+          >
+            <Pencil className="w-3.5 h-3.5" />
+            Editor
+          </button>
+          <button
+            type="button"
+            onClick={() => handleSwitchView('preview')}
+            className={cn(
+              'flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold transition-colors',
+              viewMode === 'preview'
+                ? 'bg-[#5b6300] text-white'
+                : 'text-[#767870] dark:text-[#464841] hover:text-[#181d12] dark:hover:text-[#f7fce9]'
+            )}
+          >
+            <Eye className="w-3.5 h-3.5" />
+            Preview
+          </button>
+        </div>
+      </div>
+
+      {viewMode === 'preview' ? (
+        <>
+          <PostPreview
+            title={title}
+            subtitle={subtitle}
+            excerpt={excerpt}
+            category={category}
+            tags={tags ? tags.split(',').map((t) => t.trim()).filter(Boolean) : []}
+            coverImage={coverImageUrl || undefined}
+            contentRaw={contentRaw}
+          />
+
+          {/* Action bar under the preview */}
+          <div className="flex items-center gap-3 justify-between mt-6 pb-10 flex-wrap">
+            <button
+              onClick={() => handleSwitchView('editor')}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-[#e0e5d2] dark:border-[#2d3226] text-sm font-semibold text-[#464841] dark:text-[#c6c7be] hover:bg-[#f1f6e3] dark:hover:bg-[#2d3226]/50 transition-colors"
+            >
+              <Pencil className="w-4 h-4" />
+              Back to editor
+            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => handleSave(false)}
+                disabled={saving || !canSave}
+                className="px-6 py-2.5 rounded-full border border-[#e0e5d2] dark:border-[#2d3226] text-sm font-semibold text-[#464841] dark:text-[#c6c7be] hover:bg-[#f1f6e3] dark:hover:bg-[#2d3226]/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+                Save as draft
+              </button>
+              <button
+                onClick={() => handleSave(true)}
+                disabled={saving || !requiredMet}
+                className="px-6 py-2.5 rounded-full bg-[#5b6300] text-white text-sm font-semibold hover:bg-[#4a5100] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+                Publish
+              </button>
+            </div>
+          </div>
+        </>
+      ) : (
+      <>
+      {/* AI Writing Assistant */}
+      <AIWritingAssistant
+        categoryHint={category}
+        hasExistingContent={Boolean(title.trim() || contentRaw.trim())}
+        onApply={applyAIDraft}
+        className="mb-6"
+      />
+
+      {/* Idea-to-draft helper card */}
+      <div className="mb-6 p-5 rounded-[1.25rem] bg-gradient-to-br from-[#f1f6e3] to-[#f7fce9] dark:from-[#2d3226]/60 dark:to-[#1c2217] border border-[#d3dcc0] dark:border-[#2d3226]">
+        <div className="flex items-start gap-3">
+          <span className="w-8 h-8 rounded-full bg-[#d3e056]/40 dark:bg-[#d3e056]/10 flex items-center justify-center shrink-0">
+            <Lightbulb className="w-4 h-4 text-[#5b6300] dark:text-[#c2cf47]" />
+          </span>
+          <div className="text-sm leading-relaxed">
+            <p className="font-semibold text-[#181d12] dark:text-[#f7fce9] mb-1">
+              Already have something written? Upload a .md file or paste it below.
+            </p>
+            <p className="text-[#464841] dark:text-[#c6c7be]">
+              You can edit the parsed content in the editor, then{' '}
+              <span className="inline-flex items-center gap-1 font-medium text-[#5b6300] dark:text-[#c2cf47]">
+                <Sparkles className="w-3 h-3" />Preview before publishing
+              </span>{' '}
+              to see exactly what readers will see.
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Markdown input */}
@@ -395,6 +536,29 @@ export default function DashboardNewPostPage() {
         )}
       </div>
 
+      {/* Blog Content — direct editing of contentRaw */}
+      <div className="bg-white dark:bg-[#1c2217] rounded-[1.5rem] border border-[#e0e5d2] dark:border-[#2d3226] p-6 mb-6">
+        <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
+          <h2 className="font-semibold text-[#181d12] dark:text-[#f7fce9]">Blog Content</h2>
+          {contentRaw.trim() && (
+            <span className="text-xs text-[#767870] dark:text-[#464841]">
+              {contentRaw.trim().split(/\s+/).filter(Boolean).length.toLocaleString()} words
+            </span>
+          )}
+        </div>
+        <p className="text-xs text-[#767870] dark:text-[#464841] mb-3">
+          Write or edit your Markdown content here. You can include headings, images, tables, and code blocks.
+        </p>
+        <textarea
+          value={contentRaw}
+          onChange={(e) => setContentRaw(e.target.value)}
+          rows={18}
+          spellCheck={false}
+          placeholder={`# Your post body\n\nStart writing here, or generate a draft above and edit it.`}
+          className="w-full rounded-[0.75rem] border border-[#e0e5d2] dark:border-[#2d3226] bg-[#f7fce9] dark:bg-[#2d3226] text-[#181d12] dark:text-[#f7fce9] px-4 py-3 text-sm font-mono leading-relaxed outline-none focus:border-[#5b6300] dark:focus:border-[#c2cf47] transition-colors placeholder:text-[#767870] dark:placeholder:text-[#464841] resize-y"
+        />
+      </div>
+
       {/* Post Details */}
       <div className="bg-white dark:bg-[#1c2217] rounded-[1.5rem] border border-[#e0e5d2] dark:border-[#2d3226] p-6 mb-6">
         <h2 className="font-semibold text-[#181d12] dark:text-[#f7fce9] mb-5">Post Details</h2>
@@ -495,13 +659,23 @@ export default function DashboardNewPostPage() {
         </div>
       </div>
 
+      {/* Pre-publish review checklist */}
+      <PublishChecklist {...checklistInput} className="mb-6" />
+
       {saveError && (
         <div className="mb-6 p-4 bg-red-50 dark:bg-red-950/30 rounded-[1rem] border border-red-200 dark:border-red-800">
           <p className="text-sm text-red-600 dark:text-red-400">{saveError}</p>
         </div>
       )}
 
-      <div className="flex items-center gap-3 justify-end pb-10">
+      <div className="flex items-center gap-3 justify-end pb-10 flex-wrap">
+        <button
+          onClick={() => handleSwitchView('preview')}
+          className="px-6 py-2.5 rounded-full border border-[#e0e5d2] dark:border-[#2d3226] text-sm font-semibold text-[#464841] dark:text-[#c6c7be] hover:bg-[#f1f6e3] dark:hover:bg-[#2d3226]/50 transition-colors flex items-center gap-2"
+        >
+          <Eye className="w-4 h-4" />
+          Preview post
+        </button>
         <button
           onClick={() => handleSave(false)}
           disabled={saving || !canSave}
@@ -512,13 +686,16 @@ export default function DashboardNewPostPage() {
         </button>
         <button
           onClick={() => handleSave(true)}
-          disabled={saving || !canSave}
+          disabled={saving || !requiredMet}
+          title={!requiredMet ? 'Fill required fields before publishing' : undefined}
           className="px-6 py-2.5 rounded-full bg-[#5b6300] text-white text-sm font-semibold hover:bg-[#4a5100] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
         >
           {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-          Publish now
+          Publish
         </button>
       </div>
+      </>
+      )}
     </div>
   )
 }

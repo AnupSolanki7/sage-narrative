@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import HeroSection from '@/components/HeroSection'
+import HowItWorks from '@/components/HowItWorks'
 import CategoryCard from '@/components/CategoryCard'
 import PostCard from '@/components/PostCard'
 import SectionHeader from '@/components/SectionHeader'
@@ -144,6 +145,7 @@ export default async function HomePage() {
     <div>
       <JsonLd data={homeJsonLd} />
       <HeroSection featuredPost={displayFeatured} />
+      <HowItWorks />
 
       <section className="px-4 md:px-8 py-12 md:py-16 max-w-7xl mx-auto">
         <SectionHeader

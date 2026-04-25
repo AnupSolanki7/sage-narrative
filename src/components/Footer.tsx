@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { Twitter, Mail, Rss, Github, Check, AlertCircle } from 'lucide-react'
 import SageLogo from './SageLogo'
 import { useSubscribe } from '@/hooks/useSubscribe'
@@ -23,9 +24,15 @@ const socialLinks = [
 ]
 
 export default function Footer() {
+  const pathname = usePathname()
   const currentYear = new Date().getFullYear()
   const [email, setEmail] = useState('')
   const { state, subscribe } = useSubscribe()
+
+  // Dashboard and admin pages have their own layouts (fixed sidebar + mobile
+  // bottom-nav) that overlay the marketing footer. Mirror what Navbar does
+  // and hide the footer entirely on those routes.
+  if (pathname.startsWith('/dashboard') || pathname.startsWith('/admin')) return null
 
   const isLoading = state.status === 'loading'
   const isSuccess = state.status === 'success'
