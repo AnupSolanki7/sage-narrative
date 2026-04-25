@@ -99,7 +99,7 @@ export default function Navbar() {
       <header className="fixed top-0 left-0 right-0 z-40 px-4 md:px-8 pt-4">
         <nav
           className={cn(
-            'relative max-w-7xl mx-auto rounded-full overflow-hidden transition-all duration-300',
+            'relative max-w-7xl mx-auto rounded-full transition-all duration-300',
             'bg-white/90 dark:bg-[#1c2217]/90 backdrop-blur-md',
             'border border-[#e0e5d2] dark:border-[#2d3226]',
             scrolled
@@ -112,13 +112,22 @@ export default function Navbar() {
           aria-valuemax={showReadingProgress ? 100 : undefined}
           aria-label={showReadingProgress ? 'Reading progress' : undefined}
         >
-          {/* Reading-progress fill — sits behind the nav content, clipped by the pill's rounded corners. */}
+          {/*
+            Reading-progress fill — wrapped in its own clipping container so
+            the lime fill stays inside the rounded pill shape WITHOUT putting
+            overflow-hidden on the nav itself (which would clip the user-menu
+            dropdown that absolute-positions below the nav).
+          */}
           {showReadingProgress && (
             <div
               aria-hidden="true"
-              className="absolute inset-y-0 left-0 bg-[#d3e056]/40 dark:bg-[#c2cf47]/20 transition-[width] duration-75 ease-out pointer-events-none"
-              style={{ width: `${readingProgress}%` }}
-            />
+              className="absolute inset-0 rounded-full overflow-hidden pointer-events-none"
+            >
+              <div
+                className="absolute inset-y-0 left-0 bg-[#d3e056]/40 dark:bg-[#c2cf47]/20 transition-[width] duration-75 ease-out"
+                style={{ width: `${readingProgress}%` }}
+              />
+            </div>
           )}
 
           <div className="relative flex items-center justify-between gap-4">

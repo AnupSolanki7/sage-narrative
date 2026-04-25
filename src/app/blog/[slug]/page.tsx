@@ -181,7 +181,11 @@ export default async function ArticlePage({ params }: PageProps) {
           {/* Main article content */}
           <div className="flex-1 min-w-0">
             <div className="bg-white dark:bg-[#1c2217] rounded-[2rem] border border-[#e0e5d2] dark:border-[#2d3226] px-6 md:px-10 lg:px-12 py-8 md:py-10 shadow-card">
-              <MarkdownRenderer contentHtml={contentHtml} />
+              {/* Cap the measure column at ~65ch for long-form readability —
+                  the card itself stays full-width for the editorial feel. */}
+              <div className="max-w-[68ch] mx-auto">
+                <MarkdownRenderer contentHtml={contentHtml} />
+              </div>
             </div>
 
             {/* Tags */}
