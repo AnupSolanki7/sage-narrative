@@ -19,7 +19,6 @@ const navLinks = [
 const socialLinks = [
   { href: 'https://twitter.com', icon: Twitter, label: 'Twitter / X' },
   { href: 'mailto:hello@sagenarrative.com', icon: Mail, label: 'Email' },
-  { href: '/rss.xml', icon: Rss, label: 'RSS Feed' },
   { href: 'https://github.com', icon: Github, label: 'GitHub' },
 ]
 
